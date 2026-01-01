@@ -1,0 +1,69 @@
+import express from 'express'; 
+import cors from 'cors'; 
+import type { CorsOptions } from 'cors';
+import cookieParser from 'cookie-parser';
+import compression from 'compression';
+import helmet from 'helmet';
+
+import config from '@/config';
+import limiter from '@/lib/express_rate_limit';
+import { connectToDatabase, disconnectFromDatabase } from '@/lib/mongoose';
+
+import v1Routes from '@/routes/v1'; 
+import { logger } from './lib/winston';
+
+const app = express(); 
+
+// Configure CORS options 
+const corsOptions: CorsOptions = {
+    origin(origin, callback) {
+        callback(new Error('CORS Error'), false);
+        if (config.NODE_ENV === 'development' || !origin) { 
+            callback(null, true); 
+        } else { 
+            callback(new Error(`CORS error: ${origin} is not allowed by CORS`), false); 
+            logger.warn(`CORS error: ${origin} is not allowed by CORS`);
+        }
+    }
+}
+
+app.use(cors({ origin: false })); 
+app.use(express.json()); 
+app.use(express.urlencoded({ extended: true })); 
+app.use(cookieParser()); 
+app.use(
+    compression({
+        threshold: 1024
+    }), 
+); 
+app.use(helmet()); 
+app.use(limiter);
+
+(async () => {
+    try {
+        await connectToDatabase(); 
+        app.use('/api/v1', v1Routes); 
+        app.listen(config.PORT, () => {
+            logger.info(`Server is running: http://localhost:${config.PORT}`); 
+        });
+    } catch (error) { 
+        logger.error('Error starting server:', error);
+
+        if (config.NODE_ENV === 'production') {
+            process.exit(1); 
+        }
+    }
+})(); 
+
+const handleServerShutdown = async () => {
+    try {
+        await disconnectFromDatabase(); 
+        logger.warn("Server is shutting down...");
+        process.exit(0); 
+    } catch (error) {
+        logger.error("Error during server shutdown:", error);
+    }
+}
+
+process.on('SIGTERM', handleServerShutdown);
+process.on('SIGINT', handleServerShutdown);

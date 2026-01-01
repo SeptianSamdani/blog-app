@@ -17,7 +17,6 @@ const app = express();
 // Configure CORS options 
 const corsOptions: CorsOptions = {
     origin(origin, callback) {
-        callback(new Error('CORS Error'), false);
         if (config.NODE_ENV === 'development' || !origin) { 
             callback(null, true); 
         } else { 
@@ -27,7 +26,7 @@ const corsOptions: CorsOptions = {
     }
 }
 
-app.use(cors({ origin: false })); 
+app.use(cors(corsOptions));
 app.use(express.json()); 
 app.use(express.urlencoded({ extended: true })); 
 app.use(cookieParser()); 

@@ -5,16 +5,34 @@ import { generateAccessToken, generateRefreshToken } from "@/lib/jwt";
 import Token from "@/models/token";
 import { logger } from "@/lib/winston";
 import config from "@/config";
+import bcrypt from 'bcrypt';
 
 type UserData = Pick<IUser, 'email' | 'password'> 
 
 const login = async (req: Request, res: Response): Promise<void> => {
     try { 
-        const { email } = req.body as UserData; 
+        const { email, password } = req.body as UserData;
         const user = await User.findOne({ email })
             .select('username email password role')
             .lean()
             .exec();
+
+        if (!user) { 
+            res.status(404).json({
+                code: "Not Found", 
+                message: 'User with this email does not exist.'
+            }); 
+            return; 
+        }
+
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
+            res.status(401).json({
+                code: "Authentication Error",
+                message: 'Invalid credentials.'
+            });
+            return;
+        }
 
         if (!user) { 
             res.status(404).json({
@@ -52,7 +70,7 @@ const login = async (req: Request, res: Response): Promise<void> => {
             accessToken
         }); 
 
-        logger.info('User registered successfully', user); 
+        logger.info('User logged in successfully', user); 
     } catch (error) { 
         res.status(500).json({ 
             message: error instanceof Error ? error.message : 'Internal Server Error'

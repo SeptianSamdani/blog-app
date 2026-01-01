@@ -25,10 +25,10 @@ router.post(
         .withMessage('Invalid email address.')
         .custom(async (value) => {
             const userExists = await User.exists({ email: value }); 
-            if (!userExists) { 
-                throw new Error('User email or password is invalid.')
+            if (userExists) { 
+                throw new Error('Email already registered.')
             }
-        }), 
+        }),
     body('password')
         .notEmpty()
         .withMessage('Password is required.')

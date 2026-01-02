@@ -7,6 +7,9 @@ import { param, body, query } from "express-validator";
 import User from '@/models/user';
 import validationError from "@/middlewares/validationError";
 import deleteCurrentUser from "@/controllers/v1/user/delete-current-user";
+import getAllUsers from "@/controllers/v1/user/get-all-users";
+import getUser from "@/controllers/v1/user/get-user";
+import deleteUser from "@/controllers/v1/user/delete-user";
 
 const router = Router();
 
@@ -74,5 +77,45 @@ router.delete(
     authorize(['admin', 'user']), 
     deleteCurrentUser
 ); 
+
+router.get(
+    '/', 
+    authenticate,
+    authorize(['admin']), 
+    query('limit')
+        .optional()
+        .isInt({ min: 1, max: 50 })
+        .withMessage('Limit must be between 1 and 50'),
+    query('offset')
+        .optional()
+        .isInt({ min: 0 })
+        .withMessage('Offset must be a positive integer.'), 
+    validationError,
+    getAllUsers
+); 
+
+router.get(
+    '/:userId', 
+    authenticate, 
+    authorize(['admin']), 
+    param('userId')
+        .notEmpty()
+        .isMongoId()
+        .withMessage('Invalid User ID'), 
+    validationError, 
+    getUser
+);
+
+router.delete(
+    '/:userId', 
+    authenticate, 
+    authorize(['admin']), 
+    param('userId')
+        .notEmpty()
+        .isMongoId()
+        .withMessage('Invalid User ID'), 
+    validationError, 
+    deleteUser
+);
 
 export default router;

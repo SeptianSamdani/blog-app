@@ -4,7 +4,7 @@ import User from '@/models/user';
 
 
 const deleteUser = async (req: Request, res: Response): Promise<void> => {
-    const userId = req.userId; 
+    const userId = req.userId;
 
     try { 
         await User.deleteOne({ _id: userId }); 
@@ -26,4 +26,4 @@ const deleteUser = async (req: Request, res: Response): Promise<void> => {
     }
 }
 
-export default deleteUser; 
+export default deleteUser;
